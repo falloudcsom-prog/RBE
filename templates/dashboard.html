@@ -12,8 +12,8 @@
     <div>
       <h1 class="titre-page"><i class="fas fa-chart-pie me-2"></i>Tableau de bord</h1>
       <p class="sous-titre-page">
-        {% if est_admin %}Registre National des Bénéficiaires Effectifs — Vue complète
-        {% else %}Vos déclarations — {{ stats.total }} enregistrement(s){% endif %}
+        {% if est_admin %}Registre National des Bénéficiaires Effectifs - Vue complète
+        {% else %}Vos déclarations - {{ stats.total }} enregistrement(s){% endif %}
       </p>
     </div>
     <a href="{{ url_for('nouvelle_declaration') }}" class="btn-primaire grand">
