@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block titre %}Tableau de bord Registre des Bénéficiaires Effectifs{% endblock %}
+
+{% block css_extra %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.css">
+{% endblock %}
+
+{% block contenu %}
+<div class="container-fluid px-4 py-4">
+
+  <div class="entete-page">
+    <div>
+      <h1 class="titre-page"><i class="fas fa-chart-pie me-2"></i>Tableau de bord</h1>
+      <p class="sous-titre-page">
+        {% if est_admin %}Registre National des Bénéficiaires Effectifs — Vue complète
+        {% else %}Vos déclarations — {{ stats.total }} enregistrement(s){% endif %}
+      </p>
+    </div>
+    <a href="{{ url_for('nouvelle_declaration') }}" class="btn-primaire grand">
+      <i class="fas fa-plus"></i> Nouvelle déclaration
+    </a>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-xl-2 col-lg-4 col-md-6">
+      <div class="carte-stat stat-bleu-nuit">
+        <div class="stat-icone"><i class="fas fa-file-alt"></i></div>
+        <div class="stat-valeur">{{ stats.total }}</div>
+        <div class="stat-libelle">Total déclarations</div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-lg-4 col-md-6">
+      <div class="carte-stat stat-bleu">
+        <div class="stat-icone"><i class="fas fa-calendar-day"></i></div>
+        <div class="stat-valeur">{{ stats.today }}</div>
+        <div class="stat-libelle">Aujourd'hui</div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-lg-4 col-md-6">
+      <div class="carte-stat stat-vert">
+        <div class="stat-icone"><i class="fas fa-building"></i></div>
+        <div class="stat-valeur">{{ stats.entreprises }}</div>
+        <div class="stat-libelle">Entreprises</div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-lg-4 col-md-6">
+      <div class="carte-stat stat-sarcelle">
+        <div class="stat-icone"><i class="fas fa-users"></i></div>
+        <div class="stat-valeur">{{ stats.beneficiaires }}</div>
+        <div class="stat-libelle">Bénéficiaires</div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-lg-4 col-md-6">
+      <div class="carte-stat stat-or">
+        <div class="stat-icone"><i class="fas fa-user-tie"></i></div>
+        <div class="stat-valeur">{{ stats.ppe }}</div>
+        <div class="stat-libelle">PPE identifiées</div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-lg-4 col-md-6">
+      <div class="carte-stat stat-rouge">
+        <div class="stat-icone"><i class="fas fa-hourglass-half"></i></div>
+        <div class="stat-valeur">{{ stats.total }}</div>
+        <div class="stat-libelle">{% if est_admin %}Total enregistrements{% else %}Mes enregistrements{% endif %}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-lg-8">
+      <div class="carte">
+        <div class="carte-entete">
+          <h5><i class="fas fa-chart-bar me-2"></i>Déclarations par mois</h5>
+        </div>
+        <div class="carte-corps">
+          <canvas id="graphMois" height="110"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="carte">
+        <div class="carte-entete">
+          <h5><i class="fas fa-chart-pie me-2"></i>Formes juridiques</h5>
+        </div>
+        <div class="carte-corps">
+          <canvas id="graphFormes" height="210"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="carte">
+    <div class="carte-entete">
+      <h5><i class="fas fa-clock me-2"></i>Déclarations récentes</h5>
+      <a href="{{ url_for('liste_declarations') }}" class="btn btn-sm btn-outline-primary" style="font-size:0.8rem">Voir tout</a>
+    </div>
+    <div class="carte-corps p-0">
+      <div class="table-responsive">
+        <table class="table tableau-standard mb-0">
+          <thead>
+            <tr>
+              <th>Référence</th>
+              <th>Date</th>
+              <th>Entreprise</th>
+              <th>NINEA</th>
+              <th>Bénéficiaire</th>
+              <th>PPE</th>
+              <th>Statut</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in declarations %}
+            <tr>
+              <td><code>{{ d.reference }}</code></td>
+              <td class="text-muted" style="font-size:0.8rem">{{ d.date_saisie.strftime('%d/%m/%Y') if d.date_saisie else '' }}</td>
+              <td><strong>{{ d.denomination_sociale or 'N.R.' }}</strong></td>
+              <td><code>{{ d.ninea or '' }}</code></td>
+              <td>{{ (d.nom_beneficiaire or '') + ' ' + (d.prenom_beneficiaire or '') | trim or 'N.R.' }}</td>
+              <td>
+                {% if d.ppe == 'Oui' %}
+                <span class="badge bg-danger" style="font-size:0.72rem">PPE</span>
+                {% elif d.ppe == 'Non' %}
+                <span class="badge bg-secondary" style="font-size:0.72rem">Non</span>
+                {% else %}
+                <span class="badge bg-light text-dark" style="font-size:0.72rem">N.R.</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if d.statut == 'Validée' %}
+                <span class="badge-statut statut-validée">{{ d.statut }}</span>
+                {% elif d.statut == 'Rejetée' %}
+                <span class="badge-statut statut-rejetée">{{ d.statut }}</span>
+                {% else %}
+                <span class="badge-statut statut-attente">{{ d.statut }}</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{{ url_for('detail_declaration', id=d.id) }}" class="btn btn-sm btn-outline-primary">
+                  <i class="fas fa-eye"></i>
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="8" class="text-center text-muted py-4">Aucune déclaration pour le moment</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block js_extra %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+const moisLabels = {{ mois_labels|safe }};
+const moisCounts = {{ mois_counts|safe }};
+const formesData = {{ formes_data|safe }};
+
+new Chart(document.getElementById('graphMois'), {
+  type: 'bar',
+  data: {
+    labels: moisLabels,
+    datasets: [{
+      label: 'Déclarations',
+      data: moisCounts,
+      backgroundColor: 'rgba(28,53,87,0.75)',
+      borderColor: '#1C3557',
+      borderWidth: 1,
+      borderRadius: 5
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } } }
+  }
+});
+
+if (formesData.length > 0) {
+  new Chart(document.getElementById('graphFormes'), {
+    type: 'doughnut',
+    data: {
+      labels: formesData.map(d => d.label),
+      datasets: [{
+        data: formesData.map(d => d.value),
+        backgroundColor: ['#1C3557','#D4A63C','#276749','#B91C1C','#2563EB','#718096','#0EA5E9'],
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }
+    }
+  });
+}
+</script>
+{% endblock %}

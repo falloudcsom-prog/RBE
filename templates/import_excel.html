@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block titre %}Import Excel Registre des Bénéficiaires Effectifs{% endblock %}
+
+{% block contenu %}
+<div class="container-fluid px-4 py-4">
+
+  <div class="entete-page mb-4">
+    <div class="d-flex align-items-center gap-3">
+      <a href="{{ url_for('admin') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Retour
+      </a>
+      <div>
+        <h1 class="titre-page"><i class="fas fa-file-upload me-2"></i>Import de déclarations</h1>
+        <p class="sous-titre-page">Chargement en masse à partir d'un fichier Excel</p>
+      </div>
+    </div>
+  </div>
+
+  {% if not apercu %}
+
+  <div class="row g-4">
+    <div class="col-lg-8">
+      <div class="carte">
+        <div class="carte-entete">
+          <h5><i class="fas fa-upload me-2"></i>Charger un fichier Excel</h5>
+        </div>
+        <div class="carte-corps">
+          <form method="POST" enctype="multipart/form-data" id="formImport">
+            <input type="hidden" name="mode" id="modeImport" value="apercu">
+            <div class="zone-depot" id="zoneDepotExcel">
+              <input type="file" name="fichier_excel" id="champExcel" accept=".xlsx" class="d-none" required>
+              <div class="icone"><i class="fas fa-file-excel" style="color:#276749"></i></div>
+              <h5 style="font-size:1rem; color:#1C3557">Déposer le fichier Excel ici</h5>
+              <p class="text-muted mt-1" style="font-size:0.85rem">Format accepté : .xlsx</p>
+              <button type="button" class="btn btn-outline-success mt-2"
+                      onclick="document.getElementById('champExcel').click()">
+                <i class="fas fa-folder-open me-2"></i>Parcourir
+              </button>
+            </div>
+
+            <div id="nomFichier" class="mt-3 d-none">
+              <div class="element-fichier">
+                <i class="fas fa-file-excel text-success me-2"></i>
+                <span id="nomFichierTexte" class="flex-grow-1 fw-bold"></span>
+                <span id="tailleFichier" class="badge bg-secondary"></span>
+              </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-3 mt-4">
+              <button type="button" class="btn-primaire grand" onclick="lancerImport('apercu')">
+                <i class="fas fa-eye me-2"></i>Prévisualiser
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="carte">
+        <div class="carte-entete">
+          <h5><i class="fas fa-download me-2"></i>Modèle d'import</h5>
+        </div>
+        <div class="carte-corps">
+          <p style="font-size:0.875rem; color:#4A5568; line-height:1.6">
+            Téléchargez le modèle pour préparer votre fichier. Les colonnes obligatoires sont identifiées et des exemples sont fournis.
+          </p>
+          <a href="{{ url_for('telecharger_modele_import') }}" class="btn btn-success w-100 d-flex align-items-center justify-content-center gap-2 mt-3">
+            <i class="fas fa-file-excel"></i> Télécharger le modèle (.xlsx)
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% else %}
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="carte-stat stat-bleu-nuit">
+        <div class="stat-icone"><i class="fas fa-table"></i></div>
+        <div class="stat-valeur">{{ total }}</div>
+        <div class="stat-libelle">Lignes détectées</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="carte-stat stat-vert">
+        <div class="stat-icone"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-valeur">{{ valides|length }}</div>
+        <div class="stat-libelle">Prêtes à importer</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="carte-stat stat-rouge">
+        <div class="stat-icone"><i class="fas fa-times-circle"></i></div>
+        <div class="stat-valeur">{{ invalides|length }}</div>
+        <div class="stat-libelle">Lignes avec erreurs</div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="carte-stat stat-or">
+        <div class="stat-icone"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="stat-valeur">{{ doublons|length }}</div>
+        <div class="stat-libelle">Doublons NINEA</div>
+      </div>
+    </div>
+  </div>
+
+  {% if doublons %}
+  <div class="carte mb-4" style="border-left:4px solid #D4A63C">
+    <div class="carte-entete" style="background:#FFFBEB">
+      <h5 style="color:#92400E"><i class="fas fa-exclamation-triangle me-2"></i>Doublons NINEA détectés</h5>
+    </div>
+    <div class="carte-corps">
+      <div class="table-responsive">
+        <table class="table table-sm mb-0" style="font-size:0.85rem">
+          <thead><tr><th>Ligne</th><th>Entreprise</th><th>NINEA</th></tr></thead>
+          <tbody>
+            {% for d in doublons %}
+            <tr><td>{{ d.ligne }}</td><td>{{ d.entreprise }}</td><td><code>{{ d.ninea }}</code></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if invalides %}
+  <div class="carte mb-4" style="border-left:4px solid #B91C1C">
+    <div class="carte-entete" style="background:#FEF2F2">
+      <h5 style="color:#991B1B"><i class="fas fa-times-circle me-2"></i>Lignes avec erreurs (ignorées)</h5>
+    </div>
+    <div class="carte-corps">
+      <div class="table-responsive">
+        <table class="table table-sm mb-0" style="font-size:0.85rem">
+          <thead><tr><th>Ligne</th><th>Entreprise</th><th>Erreurs</th></tr></thead>
+          <tbody>
+            {% for item in invalides %}
+            <tr class="table-danger">
+              <td>{{ item.ligne }}</td>
+              <td>{{ item.data.denomination_sociale or 'Non renseigné' }}</td>
+              <td>
+                {% for err in item.erreurs %}
+                <span class="badge bg-danger me-1" style="font-size:0.72rem">{{ err }}</span>
+                {% endfor %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="carte mb-4">
+    <div class="carte-entete">
+      <h5><i class="fas fa-list-ul me-2"></i>Aperçu des données {{ total }} ligne(s)</h5>
+    </div>
+    <div class="carte-corps p-0">
+      <div class="table-responsive" style="max-height:400px; overflow-y:auto">
+        <table class="table tableau-standard mb-0" style="font-size:0.8rem">
+          <thead style="position:sticky; top:0; z-index:1">
+            <tr>
+              <th>Ligne</th><th>Entreprise</th><th>NINEA</th><th>Forme</th>
+              <th>Bénéficiaire</th><th>Nationalité</th><th>PPE</th><th>Participation</th><th>Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in lignes %}
+            <tr class="{% if item.erreurs %}table-danger{% elif item.doublon_ninea %}table-warning{% endif %}">
+              <td>{{ item.ligne }}</td>
+              <td>
+                <strong>{{ item.data.denomination_sociale or 'N.R.' }}</strong>
+                {% if item.erreurs %}
+                <br>{% for e in item.erreurs %}<span class="badge bg-danger" style="font-size:0.68rem">{{ e }}</span> {% endfor %}
+                {% elif item.doublon_ninea %}
+                <br><span class="badge bg-warning text-dark" style="font-size:0.68rem">NINEA doublon</span>
+                {% endif %}
+              </td>
+              <td><code>{{ item.data.ninea or '' }}</code></td>
+              <td>{{ item.data.forme_juridique or '' }}</td>
+              <td>{{ (item.data.nom_beneficiaire or '') + ' ' + (item.data.prenom_beneficiaire or '') | trim or 'N.R.' }}</td>
+              <td>{{ item.data.nationalite or '' }}</td>
+              <td>
+                {% if item.data.ppe == 'Oui' %}<span class="badge bg-danger">PPE</span>
+                {% else %}{{ item.data.ppe or '' }}{% endif %}
+              </td>
+              <td>{{ item.data.pourcentage_participation or '' }}{% if item.data.pourcentage_participation %}%{% endif %}</td>
+              <td>{{ item.data.statut or 'En attente' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="carte">
+    <div class="carte-corps">
+      <h6 class="fw-bold mb-3" style="color:#1C3557">Confirmer l'import</h6>
+      <form method="POST" id="formConfirm" action="{{ url_for('import_excel') }}">
+        <input type="hidden" name="mode" value="importer">
+        {% if doublons %}
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" name="ignorer_doublons" id="ignorerDoublons" value="1" checked>
+          <label class="form-check-label" for="ignorerDoublons" style="font-size:0.875rem">
+            Ignorer les {{ doublons|length }} ligne(s) en doublon NINEA
+          </label>
+        </div>
+        {% endif %}
+        <p style="font-size:0.875rem; color:#4A5568; margin-bottom:1rem">
+          <strong>{{ valides|length }}</strong> déclaration(s) seront importées.
+          {% if invalides %}<strong>{{ invalides|length }}</strong> ligne(s) ignorée(s).{% endif %}
+        </p>
+        <div class="d-flex gap-3 flex-wrap">
+          <a href="{{ url_for('import_excel') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Retour
+          </a>
+          {% if valides|length > 0 %}
+          <button type="submit" class="btn btn-success px-4 fw-bold"
+                  onclick="return confirm('Confirmer l\'import de {{ valides|length }} déclaration(s) ?')">
+            <i class="fas fa-database me-2"></i>Importer {{ valides|length }} déclaration(s)
+          </button>
+          {% endif %}
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+  document.getElementById('formConfirm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const stored = sessionStorage.getItem('excelFile');
+    if (!stored) { alert('Session expirée. Recommencez l\'import.'); window.location.href = '{{ url_for("import_excel") }}'; return; }
+    const form = new FormData();
+    form.append('mode', 'importer');
+    {% if doublons %}
+    const cb = document.getElementById('ignorerDoublons');
+    if (cb && cb.checked) form.append('ignorer_doublons', '1');
+    {% endif %}
+    const b64 = stored;
+    const binary = atob(b64.split(',')[1]);
+    const arr = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+    const blob = new Blob([arr], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    form.append('fichier_excel', blob, 'import.xlsx');
+    fetch('{{ url_for("import_excel") }}', { method: 'POST', body: form })
+      .then(r => { if (r.redirected) window.location.href = r.url; else return r.text(); })
+      .then(html => { if (html) { document.open(); document.write(html); document.close(); } });
+  });
+  </script>
+
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block js_extra %}
+<script>
+const zoneDepot = document.getElementById('zoneDepotExcel');
+const champExcel = document.getElementById('champExcel');
+if (zoneDepot) {
+  zoneDepot.addEventListener('dragover', e => { e.preventDefault(); zoneDepot.classList.add('survol'); });
+  zoneDepot.addEventListener('dragleave', () => zoneDepot.classList.remove('survol'));
+  zoneDepot.addEventListener('drop', e => {
+    e.preventDefault(); zoneDepot.classList.remove('survol');
+    if (e.dataTransfer.files.length > 0) { champExcel.files = e.dataTransfer.files; mettreAJourNomFichier(); }
+  });
+  champExcel.addEventListener('change', mettreAJourNomFichier);
+}
+function mettreAJourNomFichier() {
+  const f = champExcel.files[0];
+  if (f) {
+    document.getElementById('nomFichierTexte').textContent = f.name;
+    document.getElementById('tailleFichier').textContent = (f.size / 1024).toFixed(1) + ' Ko';
+    document.getElementById('nomFichier').classList.remove('d-none');
+    const reader = new FileReader();
+    reader.onload = ev => sessionStorage.setItem('excelFile', ev.target.result);
+    reader.readAsDataURL(f);
+  }
+}
+function lancerImport(mode) {
+  if (!champExcel || !champExcel.files[0]) { alert('Sélectionnez un fichier Excel (.xlsx).'); return; }
+  document.getElementById('modeImport').value = mode;
+  document.getElementById('formImport').submit();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block titre %}Administration Registre des Bénéficiaires Effectifs{% endblock %}
+
+{% block contenu %}
+<div class="container-fluid px-4 py-4">
+
+  <div class="entete-page">
+    <div>
+      <h1 class="titre-page"><i class="fas fa-sliders-h me-2"></i>Administration</h1>
+      <p class="sous-titre-page">Gestion des comptes et paramètres du système</p>
+    </div>
+  </div>
+
+  <div class="row g-3 mb-4">
+    <div class="col-md-3"><div class="carte-stat stat-bleu-nuit"><div class="stat-icone"><i class="fas fa-file-alt"></i></div><div class="stat-valeur">{{ stats.total }}</div><div class="stat-libelle">Déclarations</div></div></div>
+    <div class="col-md-3"><div class="carte-stat stat-vert"><div class="stat-icone"><i class="fas fa-building"></i></div><div class="stat-valeur">{{ stats.entreprises }}</div><div class="stat-libelle">Entreprises</div></div></div>
+    <div class="col-md-3"><div class="carte-stat stat-sarcelle"><div class="stat-icone"><i class="fas fa-users"></i></div><div class="stat-valeur">{{ users|length }}</div><div class="stat-libelle">Comptes utilisateurs</div></div></div>
+    <div class="col-md-3"><div class="carte-stat stat-or"><div class="stat-icone"><i class="fas fa-user-tie"></i></div><div class="stat-valeur">{{ stats.ppe }}</div><div class="stat-libelle">PPE identifiées</div></div></div>
+  </div>
+
+  <div class="row g-4">
+
+    <div class="col-lg-8">
+      <div class="carte">
+        <div class="carte-entete">
+          <h5><i class="fas fa-users me-2"></i>Comptes utilisateurs</h5>
+        </div>
+        <div class="carte-corps p-0">
+          <table class="table tableau-standard mb-0">
+            <thead>
+              <tr>
+                <th>Nom complet</th>
+                <th>Email</th>
+                <th>Rôle</th>
+                <th>Statut</th>
+                <th>Date de création</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in users %}
+              <tr>
+                <td><strong>{{ u.prenom }} {{ u.nom }}</strong></td>
+                <td style="font-size:0.82rem">{{ u.email }}</td>
+                <td>
+                  <span class="badge {% if u.role == 'admin' %}bg-danger{% else %}bg-primary{% endif %}" style="font-size:0.72rem">
+                    {{ u.role | capitalize }}
+                  </span>
+                </td>
+                <td>
+                  <button class="btn btn-sm {% if u.actif %}btn-success{% else %}btn-secondary{% endif %} btn-toggle"
+                          data-id="{{ u.id }}" style="font-size:0.78rem; padding: 2px 10px">
+                    <i class="fas fa-{% if u.actif %}check{% else %}times{% endif %} me-1"></i>
+                    {% if u.actif %}Actif{% else %}Inactif{% endif %}
+                  </button>
+                </td>
+                <td class="text-muted" style="font-size:0.8rem">{{ u.date_creation.strftime('%d/%m/%Y') if u.date_creation else '' }}</td>
+                <td>
+                  {% if u.id != session.user_id %}
+                  <form method="POST" action="{{ url_for('supprimer_utilisateur', id=u.id) }}" onsubmit="return confirm('Supprimer ce compte ?')">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-4">
+      <div class="carte mb-3">
+        <div class="carte-entete">
+          <h5><i class="fas fa-user-plus me-2"></i>Créer un compte</h5>
+        </div>
+        <div class="carte-corps">
+          <form method="POST" action="{{ url_for('nouveau_utilisateur') }}">
+            <div class="mb-3">
+              <label class="form-label">Nom</label>
+              <input type="text" name="nom" class="form-control" required placeholder="NOM">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Prénom</label>
+              <input type="text" name="prenom" class="form-control" required placeholder="Prénom">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Adresse email</label>
+              <input type="email" name="email" class="form-control" required placeholder="email@justice.sn">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Mot de passe</label>
+              <input type="password" name="password" class="form-control" required minlength="8" placeholder="Minimum 8 caractères">
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Rôle</label>
+              <select name="role" class="form-select">
+                <option value="utilisateur">Utilisateur</option>
+                <option value="admin">Administrateur</option>
+              </select>
+            </div>
+            <button type="submit" class="btn-primaire w-100 justify-content-center">
+              <i class="fas fa-user-plus me-2"></i>Créer le compte
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="carte">
+        <div class="carte-entete">
+          <h5><i class="fas fa-exchange-alt me-2"></i>Import et Exports</h5>
+        </div>
+        <div class="carte-corps d-grid gap-2">
+          <a href="{{ url_for('import_excel') }}" class="btn btn-primary d-flex align-items-center justify-content-center gap-2">
+            <i class="fas fa-file-import"></i> Importer des déclarations Excel
+          </a>
+          <a href="{{ url_for('telecharger_modele_import') }}" class="btn btn-outline-primary d-flex align-items-center justify-content-center gap-2">
+            <i class="fas fa-file-excel"></i> Télécharger le modèle d'import
+          </a>
+          <hr class="my-1">
+          <a href="{{ url_for('export_excel') }}" class="btn btn-success d-flex align-items-center justify-content-center gap-2">
+            <i class="fas fa-file-excel"></i> Exporter tout en Excel
+          </a>
+          <a href="{{ url_for('export_csv') }}" class="btn btn-outline-success d-flex align-items-center justify-content-center gap-2">
+            <i class="fas fa-file-csv"></i> Exporter tout en CSV
+          </a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block js_extra %}
+<script>
+document.querySelectorAll('.btn-toggle').forEach(btn => {
+  btn.addEventListener('click', function() {
+    fetch(`/admin/utilisateur/${this.dataset.id}/toggle`, { method: 'POST' })
+      .then(r => r.json())
+      .then(() => location.reload());
+  });
+});
+</script>
+{% endblock %}

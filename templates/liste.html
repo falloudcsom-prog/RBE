@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% block titre %}Liste des Déclarations Registre des Bénéficiaires Effectifs{% endblock %}
+
+{% block contenu %}
+<div class="container-fluid px-4 py-4">
+
+  <div class="entete-page">
+    <div>
+      <h1 class="titre-page"><i class="fas fa-list-ul me-2"></i>Base de données nationale</h1>
+      <p class="sous-titre-page">{{ declarations.total }} déclaration(s) enregistrée(s)</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a href="{{ url_for('export_excel') }}" class="btn btn-sm btn-success d-flex align-items-center gap-1">
+        <i class="fas fa-file-excel"></i> Excel
+      </a>
+      <a href="{{ url_for('export_csv') }}" class="btn btn-sm btn-primary d-flex align-items-center gap-1">
+        <i class="fas fa-file-csv"></i> CSV
+      </a>
+      <a href="{{ url_for('nouvelle_declaration') }}" class="btn-primaire">
+        <i class="fas fa-plus"></i> Nouvelle
+      </a>
+    </div>
+  </div>
+
+  <form method="GET" class="barre-filtres">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label">Recherche</label>
+        <div class="input-group input-group-sm">
+          <span class="input-group-text"><i class="fas fa-search"></i></span>
+          <input type="text" name="q" class="form-control" placeholder="NINEA, RCCM, entreprise, bénéficiaire..." value="{{ search }}">
+        </div>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Région</label>
+        <select name="region" class="form-select form-select-sm">
+          <option value="">Toutes</option>
+          {% for r in regions %}
+          <option value="{{ r[0] }}" {% if region == r[0] %}selected{% endif %}>{{ r[0] or 'Non renseigné' }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Forme juridique</label>
+        <select name="forme" class="form-select form-select-sm">
+          <option value="">Toutes</option>
+          {% for f in formes %}
+          <option value="{{ f[0] }}" {% if forme == f[0] %}selected{% endif %}>{{ f[0] or 'N.R.' }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">PPE</label>
+        <select name="ppe" class="form-select form-select-sm">
+          <option value="">Tous</option>
+          <option value="Oui" {% if ppe == 'Oui' %}selected{% endif %}>PPE uniquement</option>
+          <option value="Non" {% if ppe == 'Non' %}selected{% endif %}>Non PPE</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Statut</label>
+        <select name="statut" class="form-select form-select-sm">
+          <option value="">Tous</option>
+          <option value="En attente" {% if statut == 'En attente' %}selected{% endif %}>En attente</option>
+          <option value="Validée" {% if statut == 'Validée' %}selected{% endif %}>Validée</option>
+          <option value="Rejetée" {% if statut == 'Rejetée' %}selected{% endif %}>Rejetée</option>
+        </select>
+      </div>
+      <div class="col-md-1">
+        <button type="submit" class="btn btn-primary btn-sm w-100">
+          <i class="fas fa-filter"></i>
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <div class="carte">
+    <div class="carte-corps p-0">
+      <div class="table-responsive">
+        <table class="table tableau-standard mb-0">
+          <thead>
+            <tr>
+              <th>Référence</th>
+              <th>Date</th>
+              <th>Entreprise</th>
+              <th>NINEA</th>
+              <th>RCCM</th>
+              <th>Bénéficiaire</th>
+              <th>Nationalité</th>
+              <th>PPE</th>
+              <th>Participation</th>
+              <th>Documents</th>
+              <th>Statut</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in declarations.items %}
+            {% set fichiers_list = d.fichiers | from_json if d.fichiers else [] %}
+            <tr>
+              <td><code>{{ d.reference }}</code></td>
+              <td class="text-muted" style="font-size:0.8rem">{{ d.date_saisie.strftime('%d/%m/%Y') if d.date_saisie else '' }}</td>
+              <td>
+                <strong>{{ d.denomination_sociale or 'N.R.' }}</strong>
+                {% if d.forme_juridique %}<br><span class="text-muted" style="font-size:0.75rem">{{ d.forme_juridique }}</span>{% endif %}
+              </td>
+              <td><code>{{ d.ninea or 'N.R.' }}</code></td>
+              <td style="font-size:0.8rem">{{ d.rccm or 'N.R.' }}</td>
+              <td>{{ (d.nom_beneficiaire or '') + ' ' + (d.prenom_beneficiaire or '') | trim or 'N.R.' }}</td>
+              <td style="font-size:0.8rem">{{ d.nationalite or 'N.R.' }}</td>
+              <td>
+                {% if d.ppe == 'Oui' %}
+                <span class="badge bg-danger">PPE</span>
+                {% elif d.ppe == 'Non' %}
+                <span class="badge bg-secondary" style="font-size:0.72rem">Non</span>
+                {% else %}
+                <span class="text-muted" style="font-size:0.75rem">N.R.</span>
+                {% endif %}
+              </td>
+              <td class="text-center">
+                {% if d.pourcentage_participation %}{{ d.pourcentage_participation }}%{% else %}<span class="text-muted">N.R.</span>{% endif %}
+              </td>
+              <td>
+                {% if fichiers_list %}
+                <div class="d-flex flex-wrap gap-1">
+                  {% for f in fichiers_list %}
+                  {% if f is mapping %}
+                  {% set ext = f.nom.rsplit('.', 1)[-1].lower() if '.' in f.nom else '' %}
+                  <a href="{{ url_for('voir_fichier', decl_id=d.id, filename=f.path) }}"
+                     target="_blank"
+                     class="badge {% if ext == 'pdf' %}bg-danger{% elif ext == 'xlsx' %}bg-success{% elif ext == 'docx' %}bg-primary{% else %}bg-warning text-dark{% endif %}"
+                     title="{{ f.nom }}"
+                     style="font-size:0.72rem">
+                    <i class="fas fa-file me-1"></i>{{ ext | upper }}
+                  </a>
+                  {% endif %}
+                  {% endfor %}
+                </div>
+                {% elif d.lien_drive %}
+                <a href="{{ d.lien_drive }}" target="_blank" class="btn btn-sm btn-outline-success py-0">
+                  <i class="fas fa-external-link-alt"></i>
+                </a>
+                {% else %}
+                <span class="text-muted" style="font-size:0.75rem">Aucun</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if user.role == 'admin' %}
+                <select class="form-select form-select-sm sel-statut" data-id="{{ d.id }}" style="width:120px;font-size:0.78rem">
+                  {% for s in ['En attente','Validée','Rejetée'] %}
+                  <option {% if d.statut == s %}selected{% endif %}>{{ s }}</option>
+                  {% endfor %}
+                </select>
+                {% else %}
+                {% if d.statut == 'Validée' %}
+                <span class="badge-statut statut-validée">{{ d.statut }}</span>
+                {% elif d.statut == 'Rejetée' %}
+                <span class="badge-statut statut-rejetée">{{ d.statut }}</span>
+                {% else %}
+                <span class="badge-statut statut-attente">{{ d.statut }}</span>
+                {% endif %}
+                {% endif %}
+              </td>
+              <td>
+                <div class="d-flex gap-1">
+                  <a href="{{ url_for('detail_declaration', id=d.id) }}" class="btn btn-sm btn-outline-primary" title="Consulter"><i class="fas fa-eye"></i></a>
+                  <a href="{{ url_for('modifier_declaration', id=d.id) }}" class="btn btn-sm btn-outline-warning" title="Modifier"><i class="fas fa-edit"></i></a>
+                  {% if user.role == 'admin' %}
+                  <form method="POST" action="{{ url_for('supprimer_declaration', id=d.id) }}" onsubmit="return confirm('Confirmer la suppression de cette déclaration ?')">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Supprimer"><i class="fas fa-trash"></i></button>
+                  </form>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="12" class="text-center text-muted py-5">
+                <i class="fas fa-inbox fa-2x d-block mb-2 opacity-25"></i>
+                Aucune déclaration trouvée
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% if declarations.pages > 1 %}
+  <nav class="mt-4">
+    <ul class="pagination justify-content-center">
+      {% if declarations.has_prev %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ declarations.prev_num }}&q={{ search }}&region={{ region }}&forme={{ forme }}&ppe={{ ppe }}&statut={{ statut }}">Précédent</a>
+      </li>
+      {% endif %}
+      {% for p in declarations.iter_pages() %}
+        {% if p %}
+        <li class="page-item {% if p == declarations.page %}active{% endif %}">
+          <a class="page-link" href="?page={{ p }}&q={{ search }}&region={{ region }}&forme={{ forme }}&ppe={{ ppe }}&statut={{ statut }}">{{ p }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+      {% endfor %}
+      {% if declarations.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ declarations.next_num }}&q={{ search }}&region={{ region }}&forme={{ forme }}&ppe={{ ppe }}&statut={{ statut }}">Suivant</a>
+      </li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+
+</div>
+{% endblock %}
+
+{% block js_extra %}
+<script>
+document.querySelectorAll('.sel-statut').forEach(sel => {
+  sel.addEventListener('change', function() {
+    fetch(`/declaration/${this.dataset.id}/statut`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `statut=${encodeURIComponent(this.value)}`
+    }).then(r => r.json()).then(data => {
+      if (data.success) {
+        sel.style.borderColor = '#276749';
+        setTimeout(() => sel.style.borderColor = '', 1500);
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

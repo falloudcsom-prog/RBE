@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block titre %}{{ d.reference }} Registre des Bénéficiaires Effectifs{% endblock %}
+
+{% block contenu %}
+<div class="container-fluid px-4 py-4">
+
+  <div class="entete-page">
+    <div class="d-flex align-items-center gap-3">
+      <a href="{{ url_for('liste_declarations') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-arrow-left me-1"></i>Retour
+      </a>
+      <div>
+        <h1 class="titre-page"><i class="fas fa-file-alt me-2"></i>{{ d.reference }}</h1>
+        <p class="sous-titre-page">Enregistrée le {{ d.date_saisie.strftime('%d/%m/%Y à %H:%M') if d.date_saisie else '' }}</p>
+      </div>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+      {% if d.statut == 'Validée' %}
+      <span class="badge-statut statut-validée fs-6 px-3 py-2">{{ d.statut }}</span>
+      {% elif d.statut == 'Rejetée' %}
+      <span class="badge-statut statut-rejetée fs-6 px-3 py-2">{{ d.statut }}</span>
+      {% else %}
+      <span class="badge-statut statut-attente fs-6 px-3 py-2">{{ d.statut }}</span>
+      {% endif %}
+      <a href="{{ url_for('modifier_declaration', id=d.id) }}" class="btn-primaire">
+        <i class="fas fa-edit"></i> Modifier
+      </a>
+    </div>
+  </div>
+
+  <div class="row g-3">
+
+    <div class="col-12">
+      <div class="carte-detail">
+        <div class="entete-detail">
+          <span class="badge-section-sm">A</span>
+          <h5>Entité déclarante</h5>
+        </div>
+        <div class="corps-detail">
+          <div class="row g-3">
+            <div class="col-md-4"><div class="champ-detail"><label>Dénomination Sociale</label><strong>{{ d.denomination_sociale or 'N.R.' }}</strong></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>NINEA</label><code>{{ d.ninea or 'N.R.' }}</code></div></div>
+            <div class="col-md-3"><div class="champ-detail"><label>RCCM</label><span>{{ d.rccm or 'N.R.' }}</span></div></div>
+            <div class="col-md-3"><div class="champ-detail"><label>Forme Juridique</label><span class="badge" style="background:#1C3557;font-size:0.8rem">{{ d.forme_juridique or 'N.R.' }}</span></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>Pays</label><span>{{ d.pays or 'N.R.' }}</span></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>Région</label><span>{{ d.region or 'N.R.' }}</span></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>Ville</label><span>{{ d.ville or 'N.R.' }}</span></div></div>
+            <div class="col-md-3"><div class="champ-detail"><label>Adresse / Siège Social</label><span>{{ d.adresse or 'N.R.' }}</span></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>Téléphone</label><span>{{ d.telephone or 'N.R.' }}</span></div></div>
+            <div class="col-md-3"><div class="champ-detail"><label>Email</label><span>{{ d.email_entreprise or 'N.R.' }}</span></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>Cotée en bourse</label><span>{{ d.cotee_bourse or 'N.R.' }}</span></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>Entreprise d'État</label><span>{{ d.entreprise_etat or 'N.R.' }}</span></div></div>
+            {% if d.filiale_cotee == 'Oui' %}
+            <div class="col-md-3"><div class="champ-detail"><label>Maison mère</label><span>{{ d.nom_maison_mere or 'N.R.' }}</span></div></div>
+            <div class="col-md-3"><div class="champ-detail"><label>Place boursière</label><span>{{ d.place_boursiere or 'N.R.' }}</span></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>ISIN</label><code>{{ d.numero_isin or 'N.R.' }}</code></div></div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <div class="carte-detail">
+        <div class="entete-detail">
+          <span class="badge-section-sm">B</span>
+          <h5>Bénéficiaire Effectif</h5>
+          {% if d.ppe == 'Oui' %}<span class="badge bg-danger ms-2">PPE</span>{% endif %}
+        </div>
+        <div class="corps-detail">
+          <div class="row g-3">
+            <div class="col-md-3"><div class="champ-detail"><label>Nom</label><strong>{{ d.nom_beneficiaire or 'N.R.' }}</strong></div></div>
+            <div class="col-md-3"><div class="champ-detail"><label>Prénom(s)</label><strong>{{ d.prenom_beneficiaire or 'N.R.' }}</strong></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>Sexe</label><span>{{ d.sexe or 'N.R.' }}</span></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>Date de naissance</label><span>{{ d.date_naissance or 'N.R.' }}</span></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>Lieu de naissance</label><span>{{ d.lieu_naissance or 'N.R.' }}</span></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>Nationalité</label><span>{{ d.nationalite or 'N.R.' }}</span></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>Pays de résidence</label><span>{{ d.pays_residence or 'N.R.' }}</span></div></div>
+            <div class="col-md-3"><div class="champ-detail"><label>N° CNI / Passeport</label><code>{{ d.numero_cni or 'N.R.' }}</code></div></div>
+            <div class="col-md-4"><div class="champ-detail"><label>Adresse personnelle</label><span>{{ d.adresse_personnelle or 'N.R.' }}</span></div></div>
+            <div class="col-md-4"><div class="champ-detail"><label>Adresse professionnelle</label><span>{{ d.adresse_professionnelle or 'N.R.' }}</span></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>PPE</label><span>{{ d.ppe or 'N.R.' }}</span></div></div>
+            {% if d.ppe == 'Oui' %}
+            <div class="col-md-3"><div class="champ-detail"><label>Fonction PPE</label><span>{{ d.fonction_ppe or 'N.R.' }}</span></div></div>
+            <div class="col-md-3"><div class="champ-detail"><label>Catégorie PPE</label><span>{{ d.categorie_ppe or 'N.R.' }}</span></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>Début de fonction</label><span>{{ d.date_debut_fonction or 'N.R.' }}</span></div></div>
+            <div class="col-md-2"><div class="champ-detail"><label>Fin de fonction</label><span>{{ d.date_fin_fonction or 'N.R.' }}</span></div></div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-7">
+      <div class="carte-detail">
+        <div class="entete-detail">
+          <span class="badge-section-sm">C</span>
+          <h5>Participation et Contrôle</h5>
+        </div>
+        <div class="corps-detail">
+          <div class="row g-3">
+            <div class="col-6"><div class="champ-detail"><label>Parts directes ≥ 2%</label><span>{{ d.parts_directes or 'N.R.' }}</span></div></div>
+            <div class="col-6"><div class="champ-detail"><label>Nombre de parts</label><span>{{ d.nombre_parts_directes or 'N.R.' }}</span></div></div>
+            <div class="col-6"><div class="champ-detail"><label>Participation directe</label><strong class="text-primary">{{ d.pourcentage_participation or 'N.R.' }}{% if d.pourcentage_participation %}%{% endif %}</strong></div></div>
+            <div class="col-6"><div class="champ-detail"><label>Droits de vote directs</label><span>{{ d.droits_vote_directs or 'N.R.' }}</span></div></div>
+            <div class="col-6"><div class="champ-detail"><label>Pourcentage des voix</label><span>{{ d.pourcentage_voix or 'N.R.' }}{% if d.pourcentage_voix %}%{% endif %}</span></div></div>
+            <div class="col-6"><div class="champ-detail"><label>Parts indirectes ≥ 2%</label><span>{{ d.parts_indirectes or 'N.R.' }}</span></div></div>
+            <div class="col-6"><div class="champ-detail"><label>Représentant légal</label><span>{{ d.representant_legal or 'N.R.' }}</span></div></div>
+            <div class="col-6"><div class="champ-detail"><label>Date d'acquisition</label><span>{{ d.date_beneficiaire or 'N.R.' }}</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-5">
+      <div class="carte-detail">
+        <div class="entete-detail">
+          <span class="badge-section-sm">D</span>
+          <h5>Documents justificatifs</h5>
+        </div>
+        <div class="corps-detail">
+          {% if fichiers %}
+          {% for f in fichiers %}
+          {% if f is mapping %}
+          {% set ext = f.nom.rsplit('.', 1)[-1].lower() if '.' in f.nom else '' %}
+          <div class="element-fichier mb-1">
+            <i class="fas fa-file-{% if ext == 'pdf' %}pdf text-danger{% elif ext == 'xlsx' %}excel text-success{% elif ext == 'docx' %}word text-primary{% elif ext == 'zip' %}archive text-warning{% else %}alt text-muted{% endif %}"></i>
+            <a href="{{ url_for('voir_fichier', decl_id=d.id, filename=f.path) }}" target="_blank" class="flex-grow-1">
+              {{ f.nom }}
+            </a>
+            <span class="badge bg-light text-dark border" style="font-size:0.7rem">{{ ext | upper }}</span>
+          </div>
+          {% endif %}
+          {% endfor %}
+          {% else %}
+          <p class="text-muted mb-0" style="font-size:0.875rem"><i class="fas fa-folder-open me-2"></i>Aucun fichier joint</p>
+          {% endif %}
+          {% if d.lien_drive %}
+          <div class="mt-3">
+            <a href="{{ d.lien_drive }}" target="_blank" class="btn btn-sm btn-success d-flex align-items-center gap-2" style="width:fit-content">
+              <i class="fas fa-external-link-alt"></i> Ouvrir le dossier Drive
+            </a>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="carte-detail mt-3">
+        <div class="entete-detail">
+          <span class="badge-section-sm">E</span>
+          <h5>Certification</h5>
+        </div>
+        <div class="corps-detail">
+          <div class="row g-2">
+            <div class="col-12"><div class="champ-detail"><label>Certifié par</label><strong>{{ d.certifie_par or 'N.R.' }}</strong></div></div>
+            <div class="col-12"><div class="champ-detail"><label>Fonction</label><span>{{ d.fonction_certifiant or 'N.R.' }}</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block titre %}Téléchargements Registre des Bénéficiaires Effectifs{% endblock %}
+
+{% block contenu %}
+<div class="container-fluid px-4 py-4">
+
+  <div class="entete-page">
+    <div>
+      <h1 class="titre-page"><i class="fas fa-download me-2"></i>Téléchargements</h1>
+      <p class="sous-titre-page">Exportation et accès aux fichiers du registre</p>
+    </div>
+  </div>
+
+  <div class="row g-4 mb-4">
+
+    <div class="col-12">
+      <div class="carte">
+        <div class="carte-entete">
+          <h5><i class="fas fa-database me-2"></i>Exporter la base de données</h5>
+        </div>
+        <div class="carte-corps">
+          <div class="row g-3 justify-content-start">
+
+            <div class="col-md-4">
+              <div class="carte-telechargement">
+                <div class="icone-telecharger icone-xl">
+                  <i class="fas fa-file-excel"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <div class="fw-bold" style="font-size:0.9rem; color:#1C3557">Registre complet Excel</div>
+                  <div class="text-muted" style="font-size:0.78rem">Toutes les déclarations, mise en forme soignée</div>
+                </div>
+                <a href="{{ url_for('export_excel') }}" class="btn-primaire" style="flex-shrink:0">
+                  <i class="fas fa-download"></i> .xlsx
+                </a>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="carte-telechargement">
+                <div class="icone-telecharger icone-csv">
+                  <i class="fas fa-file-csv"></i>
+                </div>
+                <div class="flex-grow-1">
+                  <div class="fw-bold" style="font-size:0.9rem; color:#1C3557">Export CSV</div>
+                  <div class="text-muted" style="font-size:0.78rem">Format universel, compatible tous logiciels</div>
+                </div>
+                <a href="{{ url_for('export_csv') }}" class="btn-primaire" style="flex-shrink:0; background: linear-gradient(135deg,#1D4ED8,#3B82F6)">
+                  <i class="fas fa-download"></i> .csv
+                </a>
+              </div>
+            </div>
+
+
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="carte">
+    <div class="carte-entete">
+      <h5><i class="fas fa-paperclip me-2"></i>Fichiers joints par déclaration</h5>
+      <span class="badge bg-secondary">{{ declarations|length }} déclaration(s)</span>
+    </div>
+    <div class="carte-corps p-0">
+      <div class="table-responsive">
+        <table class="table tableau-standard mb-0">
+          <thead>
+            <tr>
+              <th>Référence</th>
+              <th>Entreprise</th>
+              <th>NINEA</th>
+              <th>Bénéficiaire</th>
+              <th>Date</th>
+              <th>Fichiers joints</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for d in declarations %}
+            {% set fichiers_list = d.fichiers | from_json if d.fichiers else [] %}
+            <tr>
+              <td><code>{{ d.reference }}</code></td>
+              <td><strong>{{ d.denomination_sociale or 'N.R.' }}</strong></td>
+              <td><code>{{ d.ninea or 'N.R.' }}</code></td>
+              <td>{{ (d.nom_beneficiaire or '') + ' ' + (d.prenom_beneficiaire or '') | trim or 'N.R.' }}</td>
+              <td class="text-muted">{{ d.date_saisie.strftime('%d/%m/%Y') if d.date_saisie else '' }}</td>
+              <td>
+                {% if fichiers_list %}
+                <div class="d-flex flex-wrap gap-1">
+                  {% for f in fichiers_list %}
+                  {% if f is mapping %}
+                  <a href="{{ url_for('voir_fichier', decl_id=d.id, filename=f.path) }}"
+                     target="_blank"
+                     class="element-fichier py-1"
+                     title="{{ f.nom }}">
+                    {% set ext = f.nom.rsplit('.', 1)[-1].lower() if '.' in f.nom else '' %}
+                    <i class="fas fa-file-{% if ext == 'pdf' %}pdf text-danger{% elif ext == 'xlsx' %}excel text-success{% elif ext == 'docx' %}word text-primary{% elif ext == 'zip' %}archive text-warning{% else %}alt{% endif %}"></i>
+                    <span>{{ f.nom }}</span>
+                    <i class="fas fa-external-link-alt text-muted" style="font-size:0.7rem"></i>
+                  </a>
+                  {% else %}
+                  <span class="element-fichier py-1">
+                    <i class="fas fa-file text-muted"></i>
+                    <span>{{ f }}</span>
+                  </span>
+                  {% endif %}
+                  {% endfor %}
+                </div>
+                {% elif d.lien_drive %}
+                <a href="{{ d.lien_drive }}" target="_blank" class="btn btn-sm btn-outline-success">
+                  <i class="fas fa-external-link-alt me-1"></i>Ouvrir Drive
+                </a>
+                {% else %}
+                <span class="text-muted" style="font-size:0.8rem">Aucun fichier joint</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if d.statut == 'Validée' %}
+                <span class="badge-statut statut-validée"><i class="fas fa-check-circle"></i>{{ d.statut }}</span>
+                {% elif d.statut == 'Rejetée' %}
+                <span class="badge-statut statut-rejetée"><i class="fas fa-times-circle"></i>{{ d.statut }}</span>
+                {% else %}
+                <span class="badge-statut statut-attente"><i class="fas fa-clock"></i>{{ d.statut }}</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="7" class="text-center text-muted py-5">
+                <i class="fas fa-inbox fa-2x d-block mb-2 opacity-25"></i>
+                Aucune déclaration disponible
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
