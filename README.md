@@ -1,5 +1,5 @@
 # Registre National des Bénéficiaires Effectifs
-## Ministère de la Justice — République du Sénégal
+## Ministère de la Justice - République du Sénégal
 
 ---
 
